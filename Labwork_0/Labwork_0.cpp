@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <iostream>
 #include "limits.h"
 #include <typeinfo>
@@ -45,57 +45,57 @@ int main()
 	cout << "Maximum value: " << UCHAR_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(s).name() << endl;
-	cout << "Size (b): " << sizeof(short) * 8 << endl;
+	cout << "Size (b): " << sizeof(short) << endl;
 	cout << "Minimum value: " << SHRT_MIN << endl;
 	cout << "Maximum value: " << SHRT_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(us).name() << endl;
-	cout << "Size (b): " << sizeof(unsigned short) * 8 << endl;
+	cout << "Size (b): " << sizeof(unsigned short) << endl;
 	cout << "Minimum value: " << "0" << endl;
 	cout << "Maximum value: " << USHRT_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(i).name() << endl;
-	cout << "Size (b): " << sizeof(int) * 8 << endl;
+	cout << "Size (b): " << sizeof(int)<< endl;
 	cout << "Minimum value: " << INT_MIN << endl;
 	cout << "Maximum value: " << INT_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(ui).name() << endl;
-	cout << "Size (b): " << sizeof(unsigned int) * 8 << endl;
+	cout << "Size (b): " << sizeof(unsigned int)<< endl;
 	cout << "Minimum value: " << "0" << endl;
 	cout << "Maximum value: " << UINT_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(l).name() << endl;
-	cout << "Size (b): " << sizeof(long) * 8 << endl;
+	cout << "Size (b): " << sizeof(long)<< endl;
 	cout << "Minimum value: " << LONG_MIN << endl;
 	cout << "Maximum value: " << LONG_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(ul).name() << endl;
-	cout << "Size (b): " << sizeof(unsigned long) * 8 << endl;
+	cout << "Size (b): " << sizeof(unsigned long)<< endl;
 	cout << "Minimum value: " << "0" << endl;
 	cout << "Maximum value: " << ULONG_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(ll).name() << endl;
-	cout << "Size (b): " << sizeof(long long) * 8 << endl;
+	cout << "Size (b): " << sizeof(long long)<< endl;
 	cout << "Minimum value: " << LLONG_MIN << endl;
 	cout << "Maximum value: " << LLONG_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(ull).name() << endl;
-	cout << "Size (b): " << sizeof(unsigned long long) * 8 << endl;
+	cout << "Size (b): " << sizeof(unsigned long long) << endl;
 	cout << "Minimum value: " << "0" << endl;
 	cout << "Maximum value: " << ULLONG_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(f).name() << endl;
-	cout << "Size (b): " << sizeof(float) * 8 << endl;
+	cout << "Size (b): " << sizeof(float)<< endl;
 	cout << "Minimum value: " << FLT_MIN << endl;
 	cout << "Maximum value: " << FLT_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(d).name() << endl;
-	cout << "Size (b): " << sizeof(double) * 8 << endl;
+	cout << "Size (b): " << sizeof(double)<< endl;
 	cout << "Minimum value: " << DBL_MIN << endl;
 	cout << "Maximum value: " << DBL_MAX << endl;
 	Dash(30);
 	cout << "Name: " << typeid(ld).name() << endl;
-	cout << "Size (b): " << sizeof(long double) * 8 << endl;
+	cout << "Size (b): " << sizeof(long double) << endl;
 	cout << "Minimum value: " << LDBL_MIN << endl;
 	cout << "Maximum value: " << LDBL_MAX << endl;
 	Dash(30);
