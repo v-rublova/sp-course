@@ -76,16 +76,9 @@ int main()
 	record rec;
 	SYSTEMTIME st;
 	SYSTEMTIME lt;
-	SYSTEMTIME lt2;
 	FILETIME ft;
-	//количество непустых //размер файла
 	unsigned char FRecordCount;
 #pragma endregion variables
-#pragma region filestreams
-
-#pragma endregion filestreams
-
-
 	do {
 		cout << "\nChoose work mode:\n\n1 - create new file;\n2 - change previous one;\n0 - close program.\n";
 		cin >> a;
