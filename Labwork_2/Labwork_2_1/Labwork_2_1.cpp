@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <iostream>
 #include "windows.h"
 #include <fstream>
@@ -16,6 +16,8 @@ struct record {
 	char content[80];
 	unsigned char accessCount;
 };
+
+//String date from SYSTEMTIME
 string SDate(unsigned short day, unsigned short month, unsigned short year) {
 	string rs = std::to_string(day) + "th of "s;
 	switch (month)
@@ -63,6 +65,7 @@ string SDate(unsigned short day, unsigned short month, unsigned short year) {
 	rs += " "s + std::to_string(year);
 	return rs;
 }
+//String time from SYSTEMTIME
 string STime(unsigned short hour, unsigned short minute, unsigned short second) {
 	return std::string(std::to_string(hour) + ":"s + std::to_string(minute) + ":"s + std::to_string(second));
 }
@@ -71,19 +74,19 @@ int main()
 #pragma region variables
 	unsigned char a;
 	bool tr;
-	tr = false;
 	unsigned short FileSize;
-	record rec;
+	unsigned char FRecordCount;
 	SYSTEMTIME st;
 	SYSTEMTIME lt;
 	FILETIME ft;
-	unsigned char FRecordCount;
+
 #pragma endregion variables
+	tr = false;
 	do {
 		cout << "\nChoose work mode:\n\n1 - create new file;\n2 - change previous one;\n0 - close program.\n";
 		cin >> a;
 		if (a == '1') {
-			FILE *file = fopen("test", "w");
+			FILE *file = fopen("RecordList", "w");
 			cout << "Enter number of records: ";
 			scanf("%hhu", &FRecordCount);
 			//number of non-empty records
@@ -100,42 +103,42 @@ int main()
 				rec.index = i;
 				fwrite(&rec, sizeof(struct record), 1, file);
 			}
-			//actual file size atm
+			//actual file size
 			fseek(file, 0, SEEK_END);
 			FileSize = ftell(file);
-			fseek(file, sizeof(char), 0);
+			fseek(file, sizeof(char), SEEK_SET);
 			fwrite(&FileSize, sizeof(short), 1, file);
 			fclose(file);
 			cout << "A file was created.";
 		}
 		else if (a == '2') {
 
-			FILE *file = fopen("test", "r+");
+			FILE *file = fopen("RecordList", "r+");
 			SYSTEMTIME lt;
-			record getinput1;
+			record inp_rec;
 			unsigned char ind;
 			bool er_tr, trf;
 			er_tr = false;
 			trf = false;
 			cout << "Enter record's Index to access it: ";
 			scanf("%hhu", &ind);
-			fseek(file, sizeof(char) + sizeof(short), 0);
-			while (!trf && fread(&getinput1, sizeof(struct record), 1, file))
+			fseek(file, sizeof(char) + sizeof(short), SEEK_SET);
+			while (!trf && fread(&inp_rec, sizeof(struct record), 1, file))
 			{
-				if (getinput1.index == ind) {
+				if (inp_rec.index == ind) {
 					er_tr = true;
 					trf = true;
 					cout << "Requested record was found.\n";
-					if ((string)getinput1.content == "") {
+					if ((string)inp_rec.content == "") {
 						cout << "No content was found\n";
 					}
 					else {
-						cout << "Content: " << getinput1.content << "\n";
+						cout << "Content: " << inp_rec.content << "\n";
 					}
 
-					FileTimeToSystemTime(&getinput1.creationTime, &lt);
+					FileTimeToSystemTime(&inp_rec.creationTime, &lt);
 					cout << "Last modified: " << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-					cout << "Number of modifications: " << (int)getinput1.accessCount << endl;
+					cout << "Number of modifications: " << (int)inp_rec.accessCount << endl;
 				}
 			}
 			if (er_tr) {
@@ -143,9 +146,17 @@ int main()
 				cout << "Choose operation: 1 - delete record; 2 - change it's content; 0 - cancel operation;\n";
 				cin >> b;
 				if (b == '1') {
+					if ((string)inp_rec.content != "") {
+						//change number of non empty records
+						unsigned char b = '0';
+						fseek(file, 0, SEEK_SET);
+						fread(&b, sizeof(char), 1, file);
+						b -= 1;
+						fseek(file, 0, SEEK_SET);
+						fwrite(&b, sizeof(char), 1, file);
+					}
 					//as a 'deletion' of a record it was chosen to place new empty record on it's place 
-					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), 0);
-					//printf("%ld", ftell(file));
+					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
 					GetSystemTime(&st);
 					SystemTimeToFileTime(&st, &ft);
 					struct record empty = { ind, ft,"",0 };
@@ -160,10 +171,19 @@ int main()
 					cin.getline(cont, sizeof(cont));
 					cin.clear();
 					cin.ignore(INT_MAX, '\n');
-					strncpy(getinput1.content, cont, sizeof(getinput1.content));
-					getinput1.accessCount++;
-					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), 0);
-					fwrite(&getinput1, sizeof(struct record), 1, file);
+					if ((string)cont != "") {
+						//change number of non empty records
+						unsigned char b = '0';
+						fseek(file, 0, SEEK_SET);
+						fread(&b, sizeof(char), 1, file);
+						b += 1;
+						fseek(file, 0, SEEK_SET);
+						fwrite(&b, sizeof(char), 1, file);
+					}
+					strncpy(inp_rec.content, cont, sizeof(inp_rec.content));
+					inp_rec.accessCount++;
+					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
+					fwrite(&inp_rec, sizeof(struct record), 1, file);
 					fclose(file);
 				}
 				else if (b == '0') {}
@@ -183,4 +203,3 @@ int main()
 		}
 	} while (!tr);
 }
-
