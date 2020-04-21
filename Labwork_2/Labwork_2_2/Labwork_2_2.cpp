@@ -1,14 +1,31 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <iostream>
 #include <Windows.h>
 #include <stdio.h>
 #include <tchar.h>
 #include <string>
 #include <strsafe.h>
+#include <string>
 
 #define BUFSIZE MAX_PATH
 
 using namespace std;
+void wrap_error() {
+	LPVOID lpMsgBuf;
+	LPVOID lpDisplayBuf;
+	DWORD dw = GetLastError();
+
+	FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		dw,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpMsgBuf,
+		0, NULL);
+	wprintf(L"error %d: %s\n", dw, lpMsgBuf);
+}
 string SDate(unsigned short day, unsigned short month, unsigned short year) {
 	string rs = std::to_string(day) + "th of "s;
 	switch (month)
@@ -88,18 +105,165 @@ int fileExists(TCHAR* file)
 	}
 	return found;
 }
+#pragma region UserCases
+void cs_change_directory() {
+	string new_Path;
+	cout << "Change directory to: ";
+	getline(cin, new_Path);
+	getline(cin, new_Path);
+	wstring stemp = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR error_switch = stemp.c_str();
+	if (!SetCurrentDirectory(error_switch))
+	{
+		printf("SetCurrentDirectory failed (%d)\n", GetLastError());
+	}
+}
+void cs_list_files(TCHAR Path[BUFSIZE]) {
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	WIN32_FIND_DATA found_file_data;
+	LARGE_INTEGER filesize;
+	SYSTEMTIME local_time;
+	FILETIME system_time;
+
+	StringCchCat(Path, MAX_PATH, TEXT("\\*"));
+	hFind = FindFirstFile(Path, &found_file_data);
+	if (INVALID_HANDLE_VALUE == hFind)
+	{
+		wrap_error();
+	}
+	else {
+		do
+		{
+			if (found_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				_tprintf(TEXT("  %s   <DIR>\n"), found_file_data.cFileName);
+			}
+			else
+			{
+				filesize.LowPart = found_file_data.nFileSizeLow;
+				filesize.HighPart = found_file_data.nFileSizeHigh;
+				FileTimeToLocalFileTime(&found_file_data.ftCreationTime, &system_time);
+				FileTimeToSystemTime(&system_time, &local_time);
+				_tprintf(TEXT("  %s   %ld bytes   "), found_file_data.cFileName, filesize.QuadPart);
+				cout << SDate(local_time.wDay, local_time.wMonth, local_time.wYear) << " ";
+				cout << STime(local_time.wHour, local_time.wMinute, local_time.wSecond) << endl;
+			}
+		} while (FindNextFile(hFind, &found_file_data) != 0);
+
+		if (GetLastError() != ERROR_NO_MORE_FILES)
+		{
+			wrap_error();
+		}
+		FindClose(hFind);
+	}
+}
+void cs_copy_file() {
+	string new_Path;
+
+	cout << "Copy file (path): ";
+	getline(cin, new_Path);
+	getline(cin, new_Path);
+	wstring stemp1 = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR source = stemp1.c_str();
+	cout << " to ";
+	getline(cin, new_Path);
+	wstring stemp = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR destination = stemp.c_str();
+	if (CopyFile(source, destination, 1) == 0) {
+		wrap_error();
+	}
+}
+void cs_create_directory() {
+	string new_Path;
+
+	cout << "Directory (path): ";
+	getline(cin, new_Path);
+	getline(cin, new_Path);
+	wstring stemp = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR destination = stemp.c_str();
+	if (CreateDirectoryW(destination, NULL) == 0) {
+		if (GetLastError() == ERROR_ALREADY_EXISTS) {
+			cout << "The specified directory already exists." << endl;
+		}
+		else {
+			cout << "One or more intermediate directories do not exist" << endl;
+		}
+	}
+}
+void cs_delete_file_or_empty_directory() {
+	string new_Path;
+
+	cout << "Path: ";
+	getline(cin, new_Path);
+	getline(cin, new_Path);
+	wstring stemp = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR destination = stemp.c_str();
+	DWORD ftyp = GetFileAttributesW(destination);
+	if (ftyp == INVALID_FILE_ATTRIBUTES) {
+		wrap_error();
+	}
+	else if (ftyp & FILE_ATTRIBUTE_DIRECTORY) {
+		if (RemoveDirectoryW(destination) == 0) {
+			wrap_error();
+		}
+	}
+	else {
+		if (DeleteFileW(destination) == 0) {
+			if (GetLastError() == ERROR_FILE_NOT_FOUND) {
+				cout << "Requested file wasn't found.\n";
+			}
+			else {
+				cout << "Requested file is inaccessible.\n";
+			}
+		}
+	}
+}
+void cs_extended_file_info() {
+	string new_Path;
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	WIN32_FIND_DATA ffd;
+	LARGE_INTEGER filesize;
+	SYSTEMTIME lt;
+	FILETIME st;
+
+	cout << "File name (path): ";
+	getline(cin, new_Path);
+	getline(cin, new_Path);
+	wstring stemp = wstring(new_Path.begin(), new_Path.end());
+	LPCWSTR destination = stemp.c_str();
+	hFind = FindFirstFileW(destination, &ffd);
+	if (INVALID_HANDLE_VALUE == hFind)
+	{
+		wrap_error();
+	}
+	else {
+		filesize.LowPart = ffd.nFileSizeLow;
+		filesize.HighPart = ffd.nFileSizeHigh;
+		_tprintf(TEXT("Name: %s\n Size: %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
+		FileTimeToLocalFileTime(&ffd.ftCreationTime, &st);
+		FileTimeToSystemTime(&st, &lt);
+		cout << "Creation Time: ";
+		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
+		FileTimeToLocalFileTime(&ffd.ftLastAccessTime, &st);
+		FileTimeToSystemTime(&st, &lt);
+		cout << "Last Access Time: ";
+		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
+		FileTimeToLocalFileTime(&ffd.ftLastWriteTime, &st);
+		FileTimeToSystemTime(&st, &lt);
+		cout << "Last Write Time: ";
+		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
+		cout << "File Attributes: " << ffd.dwFileAttributes << endl;
+	}
+}
+#pragma endregion UserCases
 int main()
 {
 #pragma region Variables
-	char mode;
-	bool tr = true;
+	enum cases { exit, change_dir, list_files, copy_file, create_dir, delete_file_or_empty_dir, extended_file_info };
+	int mode;
+	bool non_program_exit_trigger = true;
 	TCHAR Path[BUFSIZE];
-	string new_Path;
-	WIN32_FIND_DATA ffd;
-	LARGE_INTEGER filesize;
-	HANDLE hFind = INVALID_HANDLE_VALUE;
-	SYSTEMTIME lt;
-	FILETIME st;
+
 #pragma endregion Variables
 	cout << "Welcome to the Labwork_2_2_File_Manager!\n";
 	cout << "________________________________________\n";
@@ -107,150 +271,41 @@ int main()
 	{
 		CurrentDirectory(Path);
 		_tprintf(TEXT("Current directory: %s\n"), Path);
-		cout << "Commands:\n1 - change directory;\n2 - list files in current directory;\n3 - copy file;\n4 - create directory;\n5 - delete file (empty directory);\n6 - extended file info;\n0 - close program;\n";
+		cout << "Commands:\n1 - change directory;\n2 - list files in current directory;\n3 - copy file;\n";
+		cout << "4 - create directory;\n5 - delete file (empty directory);\n6 - extended file info;\n0 - close program;\n";
 		cin >> mode;
 		switch (mode)
 		{
-		case '0':
-			tr = false;
+		case exit:
+			non_program_exit_trigger = false;
 			break;
-		case '1': {
-			cout << "Change directory to: ";
-			getline(cin, new_Path);
-			getline(cin, new_Path);
-			wstring stemp = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR sw = stemp.c_str();
-			if (!SetCurrentDirectory(sw))
-			{
-				printf("SetCurrentDirectory failed (%d)\n", GetLastError());
-			}
+		case change_dir: {
+			cs_change_directory();
 			break;
 		}
-		case '2': {
-			StringCchCat(Path, MAX_PATH, TEXT("\\*"));
-			hFind = FindFirstFile(Path, &ffd);
-			if (INVALID_HANDLE_VALUE == hFind)
-			{
-				cout << "An error has occurred.";
-			}
-			else {
-				do
-				{
-					if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-					{
-						_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
-					}
-					else
-					{
-						filesize.LowPart = ffd.nFileSizeLow;
-						filesize.HighPart = ffd.nFileSizeHigh;
-						FileTimeToLocalFileTime(&ffd.ftCreationTime, &st);
-						FileTimeToSystemTime(&st, &lt);
-						_tprintf(TEXT("  %s   %ld bytes   "), ffd.cFileName, filesize.QuadPart);
-						cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-					}
-				} while (FindNextFile(hFind, &ffd) != 0);
-
-				if (GetLastError() != ERROR_NO_MORE_FILES)
-				{
-					cout << "An error has occurred.";
-				}
-				FindClose(hFind);
-			}
+		case list_files: {
+			cs_list_files(Path);
 			break;
 		}
-		case '3': {
-			cout << "Copy file (path): ";
-			getline(cin, new_Path);
-			getline(cin, new_Path);
-			wstring stemp1 = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR source = stemp1.c_str();
-			cout << " to ";
-			getline(cin, new_Path);
-			wstring stemp = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR destination = stemp.c_str();
-			if (CopyFile(source, destination, 1) == 0) {
-				cout << "An error has occurred.\n";
-			}
+		case copy_file: {
+			cs_copy_file();
 			break;
 		}
-		case '4': {
-			cout << "Directory (path): ";
-			getline(cin, new_Path);
-			getline(cin, new_Path);
-			wstring stemp = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR destination = stemp.c_str();
-			if (CreateDirectoryW(destination, NULL) == 0) {
-				if (GetLastError() == ERROR_ALREADY_EXISTS) {
-					cout << "The specified directory already exists." << endl;
-				}
-				else {
-					cout << "One or more intermediate directories do not exist" << endl;
-				}
-			}
+		case create_dir: {
+			cs_create_directory();
 			break;
 		}
-		case '5': {
-			cout << "Path: ";
-			getline(cin, new_Path);
-			getline(cin, new_Path);
-			wstring stemp = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR destination = stemp.c_str();
-			DWORD ftyp = GetFileAttributesW(destination);
-			if (ftyp == INVALID_FILE_ATTRIBUTES) {
-				cout << "An error has occurred." << endl;
-			}
-			else if (ftyp & FILE_ATTRIBUTE_DIRECTORY) {
-				if (RemoveDirectoryW(destination) == 0) {
-					cout << "An error has occurred." << endl;
-				}
-			}
-			else {
-				if (DeleteFileW(destination) == 0) {
-					if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-						cout << "Requested file wasn't found.\n";
-					}
-					else {
-						cout << "Requested file is inaccessible.\n";
-					}
-				}
-			}
+		case delete_file_or_empty_dir: {
+			cs_delete_file_or_empty_directory();
 			break;
 		}
-		case '6': {
-			cout << "File name (path): ";
-			getline(cin, new_Path);
-			getline(cin, new_Path);
-			wstring stemp = wstring(new_Path.begin(), new_Path.end());
-			LPCWSTR destination = stemp.c_str();
-			hFind = FindFirstFileW(destination, &ffd);
-			if (INVALID_HANDLE_VALUE == hFind)
-			{
-				cout << "An error has occurred." << endl;
-			}
-			else {
-				filesize.LowPart = ffd.nFileSizeLow;
-				filesize.HighPart = ffd.nFileSizeHigh;
-				_tprintf(TEXT("Name: %s\n Size: %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
-				FileTimeToLocalFileTime(&ffd.ftCreationTime, &st);
-				FileTimeToSystemTime(&st, &lt);
-				cout << "Creation Time: ";
-				cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-				FileTimeToLocalFileTime(&ffd.ftLastAccessTime, &st);
-				FileTimeToSystemTime(&st, &lt);
-				cout << "Last Access Time: ";
-				cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-				FileTimeToLocalFileTime(&ffd.ftLastWriteTime, &st);
-				FileTimeToSystemTime(&st, &lt);
-				cout << "Last Write Time: ";
-				cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-				cout << "File Attributes: " << ffd.dwFileAttributes << endl;
-			}
+		case extended_file_info: {
+			cs_extended_file_info();
 			break;
 		}
 		default:
-			tr = false;
+			non_program_exit_trigger = false;
 			break;
 		}
-	} while (tr);
+	} while (non_program_exit_trigger);
 }
