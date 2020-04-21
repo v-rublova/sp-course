@@ -221,38 +221,41 @@ void cs_delete_file_or_empty_directory() {
 void cs_extended_file_info() {
 	string new_Path;
 	HANDLE hFind = INVALID_HANDLE_VALUE;
-	WIN32_FIND_DATA ffd;
+	WIN32_FIND_DATA found_file_data;
 	LARGE_INTEGER filesize;
-	SYSTEMTIME lt;
-	FILETIME st;
+	SYSTEMTIME local_time;
+	FILETIME system_time;
 
 	cout << "File name (path): ";
 	getline(cin, new_Path);
 	getline(cin, new_Path);
 	wstring stemp = wstring(new_Path.begin(), new_Path.end());
 	LPCWSTR destination = stemp.c_str();
-	hFind = FindFirstFileW(destination, &ffd);
+	hFind = FindFirstFileW(destination, &found_file_data);
 	if (INVALID_HANDLE_VALUE == hFind)
 	{
 		wrap_error();
 	}
 	else {
-		filesize.LowPart = ffd.nFileSizeLow;
-		filesize.HighPart = ffd.nFileSizeHigh;
-		_tprintf(TEXT("Name: %s\n Size: %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
-		FileTimeToLocalFileTime(&ffd.ftCreationTime, &st);
-		FileTimeToSystemTime(&st, &lt);
+		filesize.LowPart = found_file_data.nFileSizeLow;
+		filesize.HighPart = found_file_data.nFileSizeHigh;
+		_tprintf(TEXT("Name: %s\n Size: %ld bytes\n"), found_file_data.cFileName, filesize.QuadPart);
+		FileTimeToLocalFileTime(&found_file_data.ftCreationTime, &system_time);
+		FileTimeToSystemTime(&system_time, &local_time);
 		cout << "Creation Time: ";
-		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-		FileTimeToLocalFileTime(&ffd.ftLastAccessTime, &st);
-		FileTimeToSystemTime(&st, &lt);
+		cout << SDate(local_time.wDay, local_time.wMonth, local_time.wYear) << " ";
+		cout << STime(local_time.wHour, local_time.wMinute, local_time.wSecond) << endl;
+		FileTimeToLocalFileTime(&found_file_data.ftLastAccessTime, &system_time);
+		FileTimeToSystemTime(&system_time, &local_time);
 		cout << "Last Access Time: ";
-		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-		FileTimeToLocalFileTime(&ffd.ftLastWriteTime, &st);
-		FileTimeToSystemTime(&st, &lt);
+		cout << SDate(local_time.wDay, local_time.wMonth, local_time.wYear) << " ";
+		cout << STime(local_time.wHour, local_time.wMinute, local_time.wSecond) << endl;
+		FileTimeToLocalFileTime(&found_file_data.ftLastWriteTime, &system_time);
+		FileTimeToSystemTime(&system_time, &local_time);
 		cout << "Last Write Time: ";
-		cout << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-		cout << "File Attributes: " << ffd.dwFileAttributes << endl;
+		cout << SDate(local_time.wDay, local_time.wMonth, local_time.wYear) << " ";
+		cout << STime(local_time.wHour, local_time.wMinute, local_time.wSecond) << endl;
+		cout << "File Attributes: " << found_file_data.dwFileAttributes << endl;
 	}
 }
 #pragma endregion UserCases
