@@ -103,14 +103,14 @@ bool cs_change_file(record *inp_rec, unsigned char *ind) {
 	FILE *file = fopen("RecordList", "r+");
 	SYSTEMTIME local_time;
 
-	bool serch_end_trigger = false;
+	bool search_end_trigger = false;
 	cout << "Enter record's Index to access it: ";
 	scanf("%hhu", ind);
 	fseek(file, sizeof(char) + sizeof(short), SEEK_SET);
-	while (!serch_end_trigger && fread(inp_rec, sizeof(struct record), 1, file))
+	while (!search_end_trigger && fread(inp_rec, sizeof(struct record), 1, file))
 	{
 		if (inp_rec->index == *ind) {
-			serch_end_trigger = true;
+			search_end_trigger = true;
 			cout << "Requested record was found.\n";
 			if ((string)inp_rec->content == "") {
 				cout << "No content was found\n";
@@ -126,7 +126,7 @@ bool cs_change_file(record *inp_rec, unsigned char *ind) {
 		}
 	}
 	fclose(file);
-	return serch_end_trigger;
+	return search_end_trigger;
 }
 void cs_delete_record(record inp_rec, unsigned char ind) {
 	FILE *file = fopen("RecordList", "r+");
