@@ -3,10 +3,6 @@
 #include "windows.h"
 #include <fstream>
 #include <string>
-#include <sstream>
-#include <iomanip>
-#include <stdio.h> 
-#include <stdlib.h>
 
 using namespace std;
 
@@ -69,137 +65,173 @@ string SDate(unsigned short day, unsigned short month, unsigned short year) {
 string STime(unsigned short hour, unsigned short minute, unsigned short second) {
 	return std::string(std::to_string(hour) + ":"s + std::to_string(minute) + ":"s + std::to_string(second));
 }
+#pragma region UserCases
+void cs_create_file() {
+	unsigned short FileSize;
+	unsigned char FRecordCount;
+
+	SYSTEMTIME system_time;
+	FILETIME file_time;
+
+	FILE *file = fopen("RecordList", "w");
+	cout << "Enter number of records: ";
+	scanf("%hhu", &FRecordCount);
+	//number of non-empty records
+	unsigned char b = '0';
+	fwrite(&b, sizeof(char), 1, file);
+	//placeholder for file size
+	fwrite(&FileSize, sizeof(short), 1, file);
+	//records' placeholders
+	for (unsigned char i = 0; i < (int)FRecordCount; i++)
+	{
+		GetSystemTime(&system_time);
+		SystemTimeToFileTime(&system_time, &file_time);
+		struct record rec = { 1, file_time,"",0 };
+		rec.index = i;
+		fwrite(&rec, sizeof(struct record), 1, file);
+	}
+	//actual file size
+	fseek(file, 0, SEEK_END);
+	FileSize = ftell(file);
+	fseek(file, sizeof(char), SEEK_SET);
+	fwrite(&FileSize, sizeof(short), 1, file);
+	fclose(file);
+	cout << "A file was created.";
+}
+bool cs_change_file(record *inp_rec, unsigned char *ind) {
+
+	FILE *file = fopen("RecordList", "r+");
+	SYSTEMTIME local_time;
+
+	bool serch_end_trigger = false;
+	cout << "Enter record's Index to access it: ";
+	scanf("%hhu", ind);
+	fseek(file, sizeof(char) + sizeof(short), SEEK_SET);
+	while (!serch_end_trigger && fread(inp_rec, sizeof(struct record), 1, file))
+	{
+		if (inp_rec->index == *ind) {
+			serch_end_trigger = true;
+			cout << "Requested record was found.\n";
+			if ((string)inp_rec->content == "") {
+				cout << "No content was found\n";
+			}
+			else {
+				cout << "Content: " << inp_rec->content << "\n";
+			}
+
+			FileTimeToSystemTime(&(inp_rec->creationTime), &local_time);
+			cout << "Last modified: " << SDate(local_time.wDay, local_time.wMonth, local_time.wYear) << " ";
+			cout << STime(local_time.wHour, local_time.wMinute, local_time.wSecond) << endl;
+			cout << "Number of modifications: " << (int)inp_rec->accessCount << endl;
+		}
+	}
+	fclose(file);
+	return serch_end_trigger;
+}
+void cs_delete_record(record inp_rec, unsigned char ind) {
+	FILE *file = fopen("RecordList", "r+");
+	SYSTEMTIME system_time;
+	FILETIME file_time;
+
+	if ((string)inp_rec.content != "") {
+		//change number of non empty records
+		unsigned char b = '0';
+		fseek(file, 0, SEEK_SET);
+		fread(&b, sizeof(char), 1, file);
+		b -= 1;
+		fseek(file, 0, SEEK_SET);
+		fwrite(&b, sizeof(char), 1, file);
+	}
+	//as a 'deletion' of a record it was chosen to place new empty record on it's place 
+	fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
+	GetSystemTime(&system_time);
+	SystemTimeToFileTime(&system_time, &file_time);
+	struct record empty = { ind, file_time,"",0 };
+	fwrite(&empty, sizeof(struct record), 1, file);
+	cout << "Record was deleted.\n";
+	fclose(file);
+}
+void cs_change_record(record inp_rec, unsigned char ind) {
+	FILE *file = fopen("RecordList", "r+");
+	char cont[80];
+	cout << "Input new content: ";
+	cin.getline(cont, sizeof(cont));
+	cin.getline(cont, sizeof(cont));
+	cin.clear();
+	cin.ignore(INT_MAX, '\n');
+	if ((string)cont != "") {
+		//change number of non empty records
+		unsigned char b = '0';
+		fseek(file, 0, SEEK_SET);
+		fread(&b, sizeof(char), 1, file);
+		b += 1;
+		fseek(file, 0, SEEK_SET);
+		fwrite(&b, sizeof(char), 1, file);
+	}
+	strncpy(inp_rec.content, cont, sizeof(inp_rec.content));
+	inp_rec.accessCount++;
+	fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
+	fwrite(&inp_rec, sizeof(struct record), 1, file);
+	fclose(file);
+}
+#pragma endregion UserCases
 int main()
 {
 #pragma region variables
-	unsigned char a;
-	bool tr;
-	unsigned short FileSize;
-	unsigned char FRecordCount;
-	SYSTEMTIME st;
-	SYSTEMTIME lt;
-	FILETIME ft;
+	enum program_mode { cs_exit, create_file, change_file };
+	enum record_mode { rcd_exit, delete_record, change_record };
+	int mode;
+	bool program_exit_trigger;
 
 #pragma endregion variables
-	tr = false;
+	program_exit_trigger = false;
 	do {
 		cout << "\nChoose work mode:\n\n1 - create new file;\n2 - change previous one;\n0 - close program.\n";
-		cin >> a;
-		if (a == '1') {
-			FILE *file = fopen("RecordList", "w");
-			cout << "Enter number of records: ";
-			scanf("%hhu", &FRecordCount);
-			//number of non-empty records
-			unsigned char b = '0';
-			fwrite(&b, sizeof(char), 1, file);
-			//placeholder for file size
-			fwrite(&FileSize, sizeof(short), 1, file);
-			//records' placeholders
-			for (unsigned char i = 0; i < (int)FRecordCount; i++)
-			{
-				GetSystemTime(&st);
-				SystemTimeToFileTime(&st, &ft);
-				struct record rec = { 1, ft,"",0 };
-				rec.index = i;
-				fwrite(&rec, sizeof(struct record), 1, file);
-			}
-			//actual file size
-			fseek(file, 0, SEEK_END);
-			FileSize = ftell(file);
-			fseek(file, sizeof(char), SEEK_SET);
-			fwrite(&FileSize, sizeof(short), 1, file);
-			fclose(file);
-			cout << "A file was created.";
+		cin >> mode;
+		switch (mode)
+		{
+		case cs_exit: {
+			program_exit_trigger = true;
+			break;
 		}
-		else if (a == '2') {
-
-			FILE *file = fopen("RecordList", "r+");
-			SYSTEMTIME lt;
+		case create_file: {
+			cs_create_file();
+			break;
+		}
+		case change_file: {
 			record inp_rec;
 			unsigned char ind;
-			bool er_tr, trf;
-			er_tr = false;
-			trf = false;
-			cout << "Enter record's Index to access it: ";
-			scanf("%hhu", &ind);
-			fseek(file, sizeof(char) + sizeof(short), SEEK_SET);
-			while (!trf && fread(&inp_rec, sizeof(struct record), 1, file))
-			{
-				if (inp_rec.index == ind) {
-					er_tr = true;
-					trf = true;
-					cout << "Requested record was found.\n";
-					if ((string)inp_rec.content == "") {
-						cout << "No content was found\n";
-					}
-					else {
-						cout << "Content: " << inp_rec.content << "\n";
-					}
-
-					FileTimeToSystemTime(&inp_rec.creationTime, &lt);
-					cout << "Last modified: " << SDate(lt.wDay, lt.wMonth, lt.wYear) << " " << STime(lt.wHour, lt.wMinute, lt.wSecond) << endl;
-					cout << "Number of modifications: " << (int)inp_rec.accessCount << endl;
-				}
-			}
-			if (er_tr) {
-				char b;
+			bool found_record_trigger = cs_change_file(&inp_rec, &ind);
+			if (found_record_trigger) {
+				int rcd_mode;
 				cout << "Choose operation: 1 - delete record; 2 - change it's content; 0 - cancel operation;\n";
-				cin >> b;
-				if (b == '1') {
-					if ((string)inp_rec.content != "") {
-						//change number of non empty records
-						unsigned char b = '0';
-						fseek(file, 0, SEEK_SET);
-						fread(&b, sizeof(char), 1, file);
-						b -= 1;
-						fseek(file, 0, SEEK_SET);
-						fwrite(&b, sizeof(char), 1, file);
-					}
-					//as a 'deletion' of a record it was chosen to place new empty record on it's place 
-					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
-					GetSystemTime(&st);
-					SystemTimeToFileTime(&st, &ft);
-					struct record empty = { ind, ft,"",0 };
-					fwrite(&empty, sizeof(struct record), 1, file);
-					cout << "Record was deleted.\n";
-					fclose(file);
+				cin >> rcd_mode;
+				switch (rcd_mode)
+				{
+				case rcd_exit: {
+					break;
 				}
-				else if (b == '2') {
-					char cont[80];
-					cout << "Input new content: ";
-					cin.getline(cont, sizeof(cont));
-					cin.getline(cont, sizeof(cont));
-					cin.clear();
-					cin.ignore(INT_MAX, '\n');
-					if ((string)cont != "") {
-						//change number of non empty records
-						unsigned char b = '0';
-						fseek(file, 0, SEEK_SET);
-						fread(&b, sizeof(char), 1, file);
-						b += 1;
-						fseek(file, 0, SEEK_SET);
-						fwrite(&b, sizeof(char), 1, file);
-					}
-					strncpy(inp_rec.content, cont, sizeof(inp_rec.content));
-					inp_rec.accessCount++;
-					fseek(file, sizeof(char) + sizeof(short) + (int)ind * sizeof(struct record), SEEK_SET);
-					fwrite(&inp_rec, sizeof(struct record), 1, file);
-					fclose(file);
+				case delete_record: {
+					cs_delete_record(inp_rec, ind);
+					break;
 				}
-				else if (b == '0') {}
-				else {
-					cout << "An error has occurred.\n";
+				case change_record: {
+					cs_change_record(inp_rec, ind);
+					break;
+				}
+				default:
+					cout << "No such operation.\n";
+					break;
 				}
 			}
 			else {
 				cout << "A record with given Index doesn't exist.\n";
 			}
+			break;
 		}
-		else if (a == '0') {
-			tr = true;
+		default:
+			cout << "No such operation. Try again.\n";
+			break;
 		}
-		else {
-			cout << "An error has occurred. Try again.\n";
-		}
-	} while (!tr);
+	} while (!program_exit_trigger);
 }
