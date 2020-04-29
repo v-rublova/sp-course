@@ -117,7 +117,7 @@ int main()
 			getline(cin, arch_Path);
 			getline(cin, arch_Path);
 			cout << "Now type in destination folder (full path, name included)\n";
-			getline(cin, file); //I reused *file* 'cause folder is as file (technically)
+			getline(cin, file); //I reused *file* 'cause folder is a file (technically)
 			cout << "Doing archiving mojo...Please, stand by...\n";
 			run_process_output = CreateArchivatorProcess("x", arch_Path, file);
 			break;
