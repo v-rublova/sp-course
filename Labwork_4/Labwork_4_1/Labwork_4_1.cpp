@@ -46,7 +46,7 @@ CString CreateArchivatorProcess(string run_mode, string archive_name, string fil
 
 	//"7z" +mode -tzip archive1.zip listfile.txt"
 	LPTSTR szCmdline = _wcsdup(wstring(comand_l_args.begin(), comand_l_args.end()).c_str());
-	if (CreateProcess(TEXT("E:\\2 course (inst)\\Term 2\\Sys Prog\\Labwork_4\\Labwork_4_1\\Debug\\7z.exe"), szCmdline,
+	if (CreateProcess(TEXT("7z.exe"), szCmdline,
 		NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_info))
 	{
 		Sleep(1000);				
