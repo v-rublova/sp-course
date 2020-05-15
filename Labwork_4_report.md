@@ -24,5 +24,5 @@
 ![Console_screenshot](Labwork_4/results/res_1_1.png)
 ![Console_screenshot](Labwork_4/results/res_1_2.png)
 
-## Задание 1
+## Задание 2
 ![Console_screenshot](Labwork_4/results/res_2_1.png)
